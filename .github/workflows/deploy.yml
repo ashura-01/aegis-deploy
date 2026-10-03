@@ -1,0 +1,88 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Use PHP 8.3
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, xml, curl, zip, bcmath, intl, gd, pdo_mysql, pcntl, sockets
+
+      - name: Install PHP packages
+        working-directory: backend
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --ignore-platform-req=ext-iconv
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install JS packages
+        working-directory: backend
+        run: npm ci --legacy-peer-deps
+
+
+      - name: Monorepo glue (same as start.sh / Dockerfile)
+        run: |
+          rm -rf backend/resources/js backend/resources/css
+          ln -s ../../frontend/js  backend/resources/js
+          ln -s ../../frontend/css backend/resources/css
+          ln -sfn ../backend/node_modules frontend/node_modules
+
+      - name: Build frontend
+        working-directory: backend
+        env:
+          VITE_APP_NAME: Aegis
+          VITE_REVERB_APP_KEY: ${{ vars.REVERB_APP_KEY }}
+          VITE_REVERB_HOST: ${{ vars.APP_HOST }}
+          VITE_REVERB_PORT: ${{ vars.REVERB_PORT }}
+          VITE_REVERB_SCHEME: ${{ vars.REVERB_SCHEME }}
+        run: |
+          npm run build
+          test -f public/build/manifest.json
+
+      - name: Pack release
+        run: |
+          tar -C backend -czf "$RUNNER_TEMP/release.tar.gz" \
+            --exclude='./.env' --exclude='./.env.*' --exclude='./node_modules' \
+            --exclude='./tests' --exclude='./.php' \
+            --exclude='./resources/js' --exclude='./resources/css' \
+            --exclude='./storage/logs' --exclude='./storage/certs' .
+          mv "$RUNNER_TEMP/release.tar.gz" ./release.tar.gz
+
+      - name: Load deploy key
+        run: |
+          mkdir -p ~/.ssh
+
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Copy release with scp
+        run: scp -i ~/.ssh/deploy_key release.tar.gz ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:~/release.tar.gz
+
+      - name: Unpack, migrate, optimize
+        run: |
+          ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -se <<'EOF'
+          set -euo pipefail
+          cd /var/www/aegis
+          rm -rf public/build
+          tar -xzf ~/release.tar.gz -C /var/www/aegis
+          chmod -R u+rwX storage bootstrap/cache
+          php artisan migrate --force
+          php artisan storage:link || true
+          php artisan optimize
+          php artisan queue:restart
+          php artisan reverb:restart || true
+          rm -f ~/release.tar.gz
+          EOF
