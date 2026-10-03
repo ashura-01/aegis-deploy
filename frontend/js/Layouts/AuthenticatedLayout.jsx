@@ -210,7 +210,7 @@ export default function AuthenticatedLayout({ header, children }) {
                             <ResponsiveNavLink href={route('quick-scan.index')} active={route().current('quick-scan.*')}>Probes</ResponsiveNavLink>
                             <ResponsiveNavLink href={route('targets.index')} active={route().current('targets.*')}>Assets</ResponsiveNavLink>
                             <ResponsiveNavLink href={route('vulnerabilities.index')} active={route().current('vulnerabilities.*')}>Threats</ResponsiveNavLink>
-                            <NavLink href={route('billing.index')} active={route().current('billing.*')}>Billing</NavLink>
+                            <ResponsiveNavLink href={route('billing.index')} active={route().current('billing.*')}>Billing</ResponsiveNavLink>
                         </div>
 
                         <div className="border-t border-white/[0.05] pb-3 pt-4">
