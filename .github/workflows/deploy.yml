@@ -12,10 +12,10 @@ jobs:
       - name: Get the code
         uses: actions/checkout@v4
 
-      - name: Use PHP 8.3
+      - name: Use PHP 8.4
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.3'
+          php-version: '8.4'
           extensions: mbstring, xml, curl, zip, bcmath, intl, gd, pdo_mysql, pcntl, sockets
 
       - name: Install PHP packages
@@ -30,7 +30,6 @@ jobs:
       - name: Install JS packages
         working-directory: backend
         run: npm ci --legacy-peer-deps
-
 
       - name: Monorepo glue (same as start.sh / Dockerfile)
         run: |
@@ -63,7 +62,6 @@ jobs:
       - name: Load deploy key
         run: |
           mkdir -p ~/.ssh
-
           printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
           ssh-keyscan -H "${{ secrets.DEPLOY_HOST }}" >> ~/.ssh/known_hosts
@@ -75,14 +73,15 @@ jobs:
         run: |
           ssh -i ~/.ssh/deploy_key ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} bash -se <<'EOF'
           set -euo pipefail
+          PHP=/usr/bin/php8.4
           cd /var/www/aegis
           rm -rf public/build
           tar -xzf ~/release.tar.gz -C /var/www/aegis
           chmod -R u+rwX storage bootstrap/cache
-          php artisan migrate --force
-          php artisan storage:link || true
-          php artisan optimize
-          php artisan queue:restart
-          php artisan reverb:restart || true
+          $PHP artisan migrate --force
+          $PHP artisan storage:link || true
+          $PHP artisan optimize
+          $PHP artisan queue:restart
+          $PHP artisan reverb:restart || true
           rm -f ~/release.tar.gz
           EOF
