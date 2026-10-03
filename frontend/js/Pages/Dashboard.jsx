@@ -73,7 +73,7 @@ export default function Dashboard({ stats, recentRuns = [] }) {
                             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/[0.03] backdrop-blur-md border border-white/[0.1] text-slate-200 font-sans text-sm font-semibold hover:bg-white/[0.08] transition-all shadow-sm group"
                         >
                             <DocumentTextIcon className="h-4 w-4 group-hover:text-exec-indigo transition-colors" />
-                            CISO Briefing PDF
+                            Vuln Briefing
                         </Link>
                         <Link
                             href={route('quick-scan.index')}
