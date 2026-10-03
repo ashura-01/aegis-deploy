@@ -78,9 +78,16 @@ jobs:
           rm -rf public/build
           tar -xzf ~/release.tar.gz -C /var/www/aegis
           chmod -R u+rwX storage bootstrap/cache
-          $PHP artisan migrate --force
+          $PHP artisan config:clear
+          $PHP artisan route:clear
+          for i in 1 2 3; do
+            if $PHP artisan migrate --force; then break; fi
+            [ "$i" = 3 ] && exit 1
+            echo "migrate failed, retrying in 10s..."; sleep 10
+          done
           $PHP artisan storage:link || true
-          $PHP artisan optimize
+          $PHP artisan view:cache
+          $PHP artisan event:cache
           $PHP artisan queue:restart
           $PHP artisan reverb:restart || true
           rm -f ~/release.tar.gz
