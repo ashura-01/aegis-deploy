@@ -5,7 +5,7 @@
 **Aegis** is an automated web vulnerability scanning, reconnaissance, and uptime monitoring platform built with a **Laravel (backend)** and **React + Inertia.js (frontend)** architecture.
 
 ### Key Capabilities
-- **Target Management**: Authorize and monitor domain URLs and IP addresses.
+- **Target Management**: Authorize and monitor domain URLs and IP addresses. hi dede
 - **Unified Scanning Engine**:
   - **Quick Scan**: Real-time synchronous HTTP reconnaissance (headers, SSL/TLS, open ports, robots.txt, security headers).
   - **Full Tool Runs (Async via Queue)**: Integrates standard CLI security binaries: `nmap`, `nikto`, `nuclei`, `sqlmap`, `sslscan`, `whatweb`, `whois`, `wpscan`, `dig`, `gobuster`.
